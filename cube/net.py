@@ -100,7 +100,7 @@ def update():
 
 
 def trainnet():
-    epochs=10000
+    epochs=100000
     observe=100
     global path
     for i in range(epochs):
