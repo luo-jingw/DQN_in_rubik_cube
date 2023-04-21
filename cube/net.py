@@ -15,12 +15,16 @@ warnings.filterwarnings("ignore", category=UserWarning)
 class mynet(nn.Module):
     def __init__(self):
         super(mynet,self).__init__()
-        self.linear1=nn.Linear(324,128)
-        self.linear2=nn.Linear(128,256)
-        self.linear3=nn.Linear(256,512)
-        self.linear4=nn.Linear(512,512)
-        self.linear5=nn.Linear(512,256)
-        self.linear6=nn.Linear(256,13)       
+        self.linear01=nn.Linear(54,9)
+        self.linear02=nn.Linear(54,9)
+        self.linear03=nn.Linear(54,9)
+        self.linear04=nn.Linear(54,9)
+        self.linear05=nn.Linear(54,9)
+        self.linear06=nn.Linear(54,9)
+        self.linear1=nn.Linear(54,256)
+        self.linear2=nn.Linear(256,128)
+        self.linear3=nn.Linear(128,64)
+        self.linear4=nn.Linear(64,13)       
         self.activation=nn.ReLU()
                 
 
@@ -28,6 +32,13 @@ class mynet(nn.Module):
     
     def forward(self, x):
         x=x.to(torch.float32)
+        x1=self.linear01(x[0:54])
+        x2=self.linear02(x[54:108])
+        x3=self.linear03(x[108:162])
+        x4=self.linear04(x[162:216])
+        x5=self.linear05(x[216:270])
+        x6=self.linear06(x[270:324])
+        x=torch.cat((x1,x2,x3,x4,x5,x6))
         x=self.linear1(x)
         x=self.activation(x)
         x=self.linear2(x)
@@ -35,10 +46,6 @@ class mynet(nn.Module):
         x=self.linear3(x)
         x=self.activation(x)
         x=self.linear4(x)
-        x=self.activation(x)
-        x=self.linear5(x)
-        x=self.activation(x)
-        x=self.linear6(x)
         return x
     
     
@@ -69,8 +76,8 @@ gamma=0.9
 
 N=50
 Dsize=50000
-batchsize=32
-epsilon=0.9
+batchsize=50
+epsilon=0.5
 D=deque()
 def update():
     c=cp.deepcopy(c0)
@@ -101,13 +108,18 @@ def update():
 
 
 def trainnet():
-    epochs=70000
-    observe=100
+    epochs=500000
+    observe=800
     global path
     for i in range(epochs):
+        if i<500:
+            N=3
+        if 500<=i<2000:
+            N=10
+        if i>2000:
+            N=30
         if (i+1)%500==0 and i>1:
             # 模型保存
-            path=path
             torch.save(net,path)
             
         if i<observe:
@@ -117,7 +129,7 @@ def trainnet():
         elif i==observe:
             print("\nstart training")
         else:
-            epsilon=max(0.0001,0.9-0.0001*i)
+            epsilon=max(0.0001,0.4-0.00001*i)
             minibatch = random.sample(D, batchsize)
             # get the batch variables
             s_j_batch = [d[0] for d in minibatch]
@@ -139,7 +151,7 @@ def trainnet():
                 optim.zero_grad()
                 loss.backward()
                 optim.step()
-                print("epoch/epochs",i,'/',epochs,\
+            print("epoch/epochs",i,'/',epochs,\
                 "| Q:%.3f\t"%(torch.sum(torch.multiply(qt,at)).cpu().detach().item()),\
                 "| loss:%.6f\t"%(loss.item()),\
                 "| action:%s"%(c0.controllist[torch.argmax(at).item()]),\
