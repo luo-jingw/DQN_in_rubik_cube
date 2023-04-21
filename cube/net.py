@@ -70,21 +70,20 @@ gamma=0.9
 N=50
 Dsize=50000
 batchsize=32
-epsilon=0.1
+epsilon=0.9
 D=deque()
 def update():
     c=cp.deepcopy(c0)
-    rubikstep=np.random.randint(12,size=(N))
-    controlstep=np.zeros(shape=(rubikstep.shape[0]))
-    for i in range(rubikstep.shape[0]):
-        controlstep[i]=(rubikstep[rubikstep.shape[0]-i-1]+6)%12
-    for i in range(rubikstep.shape[0]):
+    rubikstep=np.random.randint(N)
+    c.rubik(rubikstep)
+    for i in range(rubikstep):
         terminal=0
         st=torch.tensor(c.arr.flatten().astype(np.int64))-1
         st=F.one_hot(st).flatten()
-        action=controlstep[i]
-        action=torch.tensor(action,dtype=torch.int64)
         if np.random.rand()<epsilon:
+            action=np.random.randint(12)
+            action=torch.tensor(action,dtype=torch.int64)
+        else:
             action=torch.argmax(net(st))
         at=F.one_hot(action,13)
         rt=c.reward(c0)
@@ -96,15 +95,17 @@ def update():
         if len(D)==Dsize:
             D.popleft()
         D.append((st,at,rt,st1,terminal))
+        if terminal==1:
+            continue
         
 
 
 def trainnet():
-    epochs=100000
+    epochs=70000
     observe=100
     global path
     for i in range(epochs):
-        if (i+1)%1000==0 and i>1:
+        if (i+1)%500==0 and i>1:
             # 模型保存
             path=path
             torch.save(net,path)
@@ -116,7 +117,7 @@ def trainnet():
         elif i==observe:
             print("\nstart training")
         else:
-            epsilon=max(0.0001,0.9-0.00004*i)
+            epsilon=max(0.0001,0.9-0.0001*i)
             minibatch = random.sample(D, batchsize)
             # get the batch variables
             s_j_batch = [d[0] for d in minibatch]
@@ -138,13 +139,13 @@ def trainnet():
                 optim.zero_grad()
                 loss.backward()
                 optim.step()
-            update()
-            print("epoch/epochs",i,'/',epochs,\
+                print("epoch/epochs",i,'/',epochs,\
                 "| Q:%.3f\t"%(torch.sum(torch.multiply(qt,at)).cpu().detach().item()),\
                 "| loss:%.6f\t"%(loss.item()),\
                 "| action:%s"%(c0.controllist[torch.argmax(at).item()]),\
                 "| reward:%s\t"%(rt.cpu().detach().item()),\
                 "| epsilon:%.5f\t"%(epsilon))
+            update()
             
                 
 
