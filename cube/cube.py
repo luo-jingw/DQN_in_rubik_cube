@@ -246,23 +246,24 @@ class cube():
     
     def reward(self,c0):
         if self.losscube(c0)==0:
-            rt=10000
+            rt=1000
         else:
             rt=0
             for i in range(3):
                 for j in range(3):
                     if self.arr[0][i,j]==c0.arr[0][i,j]:
-                        rt=rt+10
+                        rt=rt+1
                     if self.arr[5][i,j]==c0.arr[5][i,j]:
-                        rt=rt+50
+                        rt=rt+5
             for i in range(4):
                 for j in range(3):
                     if self.arr[i+1][0,j]==c0.arr[i+1][0,j]:
-                        rt=rt+10
+                        rt=rt+1
                     if self.arr[i+1][1,j]==c0.arr[i+1][1,j]:
-                        rt=rt+50
+                        rt=rt+5
                     if self.arr[i+1][2,j]==c0.arr[i+1][2,j]:
-                        rt=rt+100
+                        rt=rt+10
+        rt=rt-0.5*self.losscube(c0)
                     
                         
         return rt
