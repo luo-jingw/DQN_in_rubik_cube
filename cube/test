@@ -1,0 +1,84 @@
+import cmd
+from cube import *
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class mynet(nn.Module):
+    def __init__(self):
+        super(mynet,self).__init__()
+        self.linear01=nn.Linear(54,9)
+        self.linear02=nn.Linear(54,9)
+        self.linear03=nn.Linear(54,9)
+        self.linear04=nn.Linear(54,9)
+        self.linear05=nn.Linear(54,9)
+        self.linear06=nn.Linear(54,9)
+        self.linear1=nn.Linear(54,64)
+        self.linear2=nn.Linear(64,128)
+        self.linear3=nn.Linear(128,64)
+        self.linear4=nn.Linear(64,13)       
+        self.activation=nn.ReLU()
+                
+
+        
+    
+    def forward(self, x):
+        x=x.to(torch.float32)
+        x1=self.linear01(x[0:54])
+        x2=self.linear02(x[54:108])
+        x3=self.linear03(x[108:162])
+        x4=self.linear04(x[162:216])
+        x5=self.linear05(x[216:270])
+        x6=self.linear06(x[270:324])
+        x=torch.cat((x1,x2,x3,x4,x5,x6))
+        x=self.linear1(x)
+        x=self.activation(x)
+        x=self.linear2(x)
+        x=self.activation(x)
+        x=self.linear3(x)
+        x=self.activation(x)
+        x=self.linear4(x)
+        return x
+    
+    
+    def initialize(self):  # 初始化模型参数
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight.data)
+                nn.init.normal_(m.bias.data)   
+    
+# 模型加载
+path='deep_q_learning_model.pkl'
+try:
+    net=torch.load(path)
+    print("load model:",path)
+except:
+    print("wrong path")
+    exit()
+    
+    
+c0=cube()
+c1=cp.deepcopy(c0)
+for i in range(30):
+    r=np.random.randint(12)
+    c1.control(r)
+    print(c1.controllist[r],end=' ')
+c1.display()
+k=0
+print('\n',np.reshape(c1.arr,(6,9)),'\n')
+print(c1.controllist)
+while c1.losscube(c0)!=0 and k<20:
+    test=torch.tensor(c1.arr.flatten().astype(np.int64))-1
+    test=F.one_hot(test).flatten()
+    control=net(test)
+    s=torch.argmax(control)
+    c1.control(int(s))
+    print(c1.controllist[s.to(int)],end=' ')
+    k+=1
+    if k==20 and c1.losscube(c0)!=0:
+        print('failed')
+    if c1.losscube(c0)==0:
+        print('succeed')
+c1.display()
+
