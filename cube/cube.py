@@ -130,10 +130,10 @@ class cube():
         arr=cp.deepcopy(self.arr)
         arr[4]=np.rot90(arr[4],k=3)
         t=cp.deepcopy(arr[0][0,:])
-        arr[0][0,:]=np.flipud(arr[3][:,2])
-        arr[3][:,2]=arr[5][2,:]
-        arr[5][2,:]=np.flipud(arr[1][:,0])
-        arr[1][:,0]=t
+        arr[0][0,:]=arr[3][:,2]
+        arr[3][:,2]=np.flipud(arr[5][2,:])
+        arr[5][2,:]=arr[1][:,0]
+        arr[1][:,0]=np.flipud(t)
         self.arr=cp.deepcopy(arr)   
         
     
