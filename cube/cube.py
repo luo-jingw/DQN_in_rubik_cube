@@ -22,7 +22,7 @@ class cube():
         self.arr[3]=s4
         self.arr[4]=s5
         self.arr[5]=s6
-        
+        self.viewarr=np.zeros((9,12))
         
         
     
@@ -166,11 +166,7 @@ class cube():
     
     
     def display(self):
-        z=np.zeros(shape=(3,3))
-        a1=np.hstack((z,self.arr[0],z,z))
-        a2=np.hstack((self.arr[1],self.arr[2],self.arr[3],self.arr[4]))
-        a3=np.hstack((z,self.arr[5],z,z))
-        a=np.vstack((a1,a2,a3))
+        a=self.viewarray()
         #print('\n',a)
         ar=np.zeros(shape=(9,12,3))
         for i in range(9):
@@ -189,10 +185,17 @@ class cube():
                     ar[i,j]=[1,0,1]
                 if a[i,j]==6:
                     ar[i,j]=[0,1,1]
-    
+        #print(a)
         plt.matshow(ar)
         plt.show()
         
+    def viewarray(self):
+        z=np.zeros(shape=(3,3))
+        a1=np.hstack((z,self.arr[0],z,z))
+        a2=np.hstack((self.arr[1],self.arr[2],self.arr[3],self.arr[4]))
+        a3=np.hstack((z,self.arr[5],z,z))
+        a=np.vstack((a1,a2,a3))
+        return a
         
         
     def control(self,s):
@@ -222,6 +225,7 @@ class cube():
             self.d()
         if s==12:
             self.o()
+        self.viewarr=self.viewarray()
   
     
     def rubik(self,len):
