@@ -10,7 +10,8 @@ import torch.nn.functional as F
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
-device = torch.device("cuda:0")
+# use gpu if available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
  
 class mynet(nn.Module):
     def __init__(self):
@@ -128,36 +129,38 @@ def trainnet():
             epsilon=max(0.0001,0.5-0.0001*i)
             minibatch = random.sample(D, batchsize)
             # get the batch variables
-            s_j_batch = [d[0] for d in minibatch]
-            a_batch = [d[1] for d in minibatch]
-            r_batch = [d[2] for d in minibatch]
-            s_j1_batch = [d[3] for d in minibatch]
-            terminal_batch=[d[4] for d in minibatch]
-            gamma_batch=[d[5] for d in minibatch]
-            if i%10==0:
-                net_=cp.deepcopy(net)
-            for j in range(batchsize):
-                st=s_j_batch[j].to(device)
-                at=a_batch[j].to(device)
-                rt=torch.tensor(r_batch[j],dtype=torch.float32).to(device)
-                st1=s_j1_batch[j].to(device)
-                gamma=gamma_batch[j]
-                qt=net(st)
-                with torch.no_grad():
-                    qt1=net_(st1)
-                if terminal_batch[j]==0:
-                    loss=loss_f(torch.sum(torch.multiply(qt,at)),rt+gamma*torch.max(qt1))
-                else:
-                    loss=loss_f(torch.sum(torch.multiply(qt,at)),rt)
-                optim.zero_grad()
-                loss.backward()
-                optim.step()
-            print("epoch/epochs",i,'/',epochs,\
-                f"| Q:{torch.sum(torch.multiply(qt,at)).cpu().detach().item():>7.2f}",\
-                f"| gamma:{gamma.item():>4.3f}",\
-                f"| reward:{rt.item():>5.1f}",\
-                f"| loss:{loss.cpu().detach().item():>10.3f}",\
-                f"| epsilon:{epsilon:>5.4f}")
+            s_j_batch = torch.stack([d[0] for d in minibatch]).to(device)
+            a_batch = torch.stack([d[1] for d in minibatch]).to(device)
+            r_batch = torch.tensor([d[2] for d in minibatch], dtype=torch.float32, device=device)
+            s_j1_batch = torch.stack([d[3] for d in minibatch]).to(device)
+            terminal_batch = torch.tensor([d[4] for d in minibatch], dtype=torch.float32, device=device)
+            gamma_batch = torch.stack([d[5] for d in minibatch]).to(device)
+
+            if i % 10 == 0:
+                net_ = cp.deepcopy(net)
+
+            # current Q values
+            q_values = net(s_j_batch)
+            q_values = torch.sum(q_values * a_batch, dim=1)
+
+            with torch.no_grad():
+                q_next = net_(s_j1_batch).max(1)[0]
+
+            targets = r_batch + (1 - terminal_batch) * gamma_batch * q_next
+
+            loss = loss_f(q_values, targets)
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+
+            print(
+                "epoch/epochs", i, '/', epochs,
+                f"| Q:{q_values.mean().item():>7.2f}",
+                f"| gamma:{gamma_batch.mean().item():>4.3f}",
+                f"| reward:{r_batch.mean().item():>5.1f}",
+                f"| loss:{loss.item():>10.3f}",
+                f"| epsilon:{epsilon:>5.4f}"
+            )
             update(N)
             
                 
